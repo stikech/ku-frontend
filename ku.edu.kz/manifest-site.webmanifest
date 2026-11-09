@@ -1,0 +1,58 @@
+{
+  "name": "Kozybayev University",
+  "short_name": "KU Site",
+  "description": "Official website of Kozybayev University",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea8bd",
+  "icons": [
+    {
+      "src": "/static/icons/apple-touch-icon-180x180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/screenshots/site-wide.png",
+      "sizes": "2547x1353",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Kozybayev University desktop view"
+    },
+    {
+      "src": "/static/screenshots/site-mobile.png",
+      "sizes": "417x921",
+      "type": "image/png",
+      "label": "Kozybayev University mobile view"
+    }
+  ]
+}

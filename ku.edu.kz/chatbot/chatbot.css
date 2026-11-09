@@ -1,0 +1,377 @@
+/* ============================================================
+   ИИ-помощник СКГУ — виджет чата (ku.edu.kz)
+   Все классы с префиксом kwc, чтобы не конфликтовать со стилями сайта.
+   ============================================================ */
+
+/* ---------- кнопка ---------- */
+#kwc-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 2147483600;
+  width: 62px;
+  height: 62px;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: linear-gradient(135deg, #0ea8bd 0%, #0b7f96 100%);
+  box-shadow: 0 6px 22px rgba(14, 168, 189, .45), 0 2px 6px rgba(0, 0, 0, .25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+#kwc-fab:hover, #kwc-fab:focus-visible {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 10px 28px rgba(14, 168, 189, .55), 0 3px 8px rgba(0, 0, 0, .28);
+  outline: none;
+}
+#kwc-fab svg { width: 30px; height: 30px; fill: #fff; pointer-events: none; }
+#kwc-fab::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid rgba(14, 168, 189, .55);
+  animation: kwc-pulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes kwc-pulse {
+  0%   { transform: scale(1);   opacity: .8; }
+  70%  { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+body.kwc-open #kwc-fab { opacity: 0; pointer-events: none; }
+
+/* ---------- метка «ИИ-помощник» рядом с кнопкой ---------- */
+#kwc-fab-label {
+  position: fixed;
+  right: 96px;
+  bottom: 38px;
+  z-index: 2147483600;
+  background: #0b7f96;
+  color: #fff;
+  font: 600 13px/1.2 'Montserrat', Arial, sans-serif;
+  padding: 8px 14px;
+  border-radius: 14px 14px 3px 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .22);
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+#kwc-fab-label--show { opacity: 1; transform: none; }
+body.kwc-open #kwc-fab-label { opacity: 0 !important; }
+
+/* ---------- панель ---------- */
+#kwc-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 33.3333vw;      /* ровно 1/3 экрана */
+  min-width: 380px;
+  max-width: 640px;
+  z-index: 2147483700;
+  background: #f4fcfd;
+  box-shadow: -18px 0 48px rgba(11, 90, 105, .25);
+  border-left: 3px solid #0ea8bd;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(103%);
+  transition: transform .28s cubic-bezier(.22, .9, .3, 1);
+  font: 500 14.5px/1.5 'Montserrat', 'Segoe UI', Arial, sans-serif;
+  color: #123a44;
+  visibility: hidden;
+}
+#kwc-panel.kwc-open { transform: none; visibility: visible; }
+#kwc-panel, #kwc-panel *, #kwc-panel *::before, #kwc-panel *::after {
+  box-sizing: border-box;
+}
+#kwc-panel a { text-decoration: none; }
+
+/* ---------- шапка ---------- */
+.kwc-head {
+  background: linear-gradient(135deg, #0ea8bd 0%, #0b6d84 100%);
+  color: #fff;
+  padding: 14px 14px 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.kwc-head__logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex: 0 0 auto;
+}
+.kwc-head__title {
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  line-height: 1.25;
+}
+.kwc-head__sub {
+  font-size: 11.5px;
+  opacity: .85;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+.kwc-head__status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffd166;
+  margin-right: 4px;
+  vertical-align: 1px;
+}
+.kwc-head__status--ai { background: #7dffc9; }
+.kwc-head__status--local { background: #fed889; }
+.kwc-head__btn {
+  margin-left: auto;
+  border: 0;
+  background: rgba(255, 255, 255, .14);
+  color: #fff;
+  font: 600 15px/1 'Montserrat', sans-serif;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background .15s ease;
+}
+.kwc-head__btn:hover, .kwc-head__btn:focus-visible { background: rgba(255, 255, 255, .3); outline: none; }
+.kwc-head__btn--close { width: 38px; font-size: 20px; }
+
+/* ---------- лента сообщений ---------- */
+.kwc-msgs {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px 14px 10px;
+  scroll-behavior: smooth;
+  background:
+    radial-gradient(1200px 500px at 110% -10%, rgba(14, 168, 189, .07), transparent 60%),
+    #f4fcfd;
+}
+.kwc-msg {
+  max-width: 88%;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  white-space: pre-line;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.55;
+  animation: kwc-in .18s ease;
+}
+@keyframes kwc-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.kwc-msg--user {
+  margin-left: auto;
+  background: linear-gradient(135deg, #0ea8bd, #0b839c);
+  color: #fff;
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: 0 3px 10px rgba(14, 168, 189, .3);
+}
+.kwc-msg--bot {
+  background: #fff;
+  border: 1px solid #d3ecef;
+  border-radius: 16px 16px 16px 4px;
+  box-shadow: 0 2px 8px rgba(30, 90, 100, .07);
+}
+.kwc-msg--sys {
+  max-width: 100%;
+  text-align: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #5c8894;
+  font-size: 12.5px;
+}
+.kwc-msg--error { border-color: #f2b8b5; background: #fff4f3; color: #7c2d29; }
+
+/* маленький «кто сказал» */
+.kwc-msg__who {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: #0b7f96;
+  margin-bottom: 4px;
+  white-space: normal;
+}
+.kwc-msg--user .kwc-msg__who { color: rgba(255, 255, 255, .7); }
+
+/* печатная машинка-заглушка */
+.kwc-typing { display: inline-flex; gap: 5px; align-items: center; padding: 4px 2px; }
+.kwc-typing i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #0ea8bd; opacity: .55;
+  animation: kwc-blink 1.2s infinite;
+}
+.kwc-typing i:nth-child(2) { animation-delay: .2s; }
+.kwc-typing i:nth-child(3) { animation-delay: .4s; }
+@keyframes kwc-blink { 0%, 70%, 100% { opacity: .3; transform: translateY(0);} 35% { opacity: 1; transform: translateY(-3px);} }
+
+/* чипсы быстрых вопросов */
+.kwc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.kwc-chip {
+  border: 1.5px solid #8ed4de;
+  background: #fff;
+  color: #0b6d84;
+  font: 600 12.5px/1 'Montserrat', sans-serif;
+  padding: 8px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.kwc-chip:hover { background: #0ea8bd; border-color: #0ea8bd; color: #fff; }
+
+/* ---------- источники ---------- */
+.kwc-sources { margin-top: 10px; }
+.kwc-sources__cap {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: #88949a;
+  margin-bottom: 6px;
+}
+.kwc-src {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #f0fafb;
+  border: 1px solid #cfe9ec;
+  border-radius: 10px;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  transition: border .15s ease, background .15s ease;
+}
+.kwc-src:hover { border-color: #0ea8bd; background: #e8f8fa; }
+.kwc-src__ico { font-size: 15px; flex: 0 0 auto; }
+.kwc-src__body { min-width: 0; }
+.kwc-src__title {
+  display: block;
+  font-size: 12.8px;
+  font-weight: 600;
+  color: #0b6d84;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kwc-src__url {
+  display: block;
+  font-size: 10.8px;
+  color: #93a5ab;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kwc-src__go {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  border: 0;
+  background: rgba(14, 168, 189, .12);
+  color: #0b7f96;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 26px;
+}
+.kwc-src__go:hover { background: #0ea8bd; color: #fff; }
+
+/* ---------- ввод ---------- */
+.kwc-input {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid #d9eef2;
+  background: #fff;
+}
+#kwc-input textarea {
+  flex: 1 1 auto;
+  resize: none;
+  border: 1.5px solid #c9e6ea;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: 500 14px/1.4 'Montserrat', 'Segoe UI', Arial, sans-serif;
+  color: #123a44;
+  background: #fbfeff;
+  max-height: 120px;
+  outline: none;
+  transition: border .15s ease;
+}
+#kwc-input textarea:focus { border-color: #0ea8bd; }
+#kwc-input textarea::placeholder { color: #9db6bc; }
+.kwc-send {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0ea8bd, #0b7f96);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.kwc-send svg { width: 19px; height: 19px; fill: #fff; }
+.kwc-send:hover { transform: scale(1.06); }
+.kwc-send:disabled { opacity: .45; cursor: default; transform: none; }
+
+.kwc-foot {
+  text-align: center;
+  font-size: 10.5px;
+  color: #93a5ab;
+  padding: 0 12px 8px;
+  background: #fff;
+  flex: 0 0 auto;
+}
+
+/* скроллбар */
+.kwc-msgs::-webkit-scrollbar { width: 7px; }
+.kwc-msgs::-webkit-scrollbar-thumb { background: #bfe3e8; border-radius: 4px; }
+
+/* ---------- мобильная версия ---------- */
+@media (max-width: 900px) {
+  #kwc-panel {
+    width: 100vw;
+    max-width: none;
+    min-width: 0;
+    top: auto;
+    height: 66%;
+    border-left: 0;
+    border-top: 3px solid #0ea8bd;
+    border-radius: 18px 18px 0 0;
+    transform: translateY(103%);
+  }
+  #kwc-panel.kwc-open { transform: none; }
+  #kwc-fab, #kwc-fab-label { right: 16px; }
+  #kwc-fab { bottom: 16px; width: 56px; height: 56px; }
+  #kwc-fab-label { bottom: 30px; display: none; }
+  #kwc-backdrop { position: fixed; inset: 0; background: rgba(10, 40, 48, .45); z-index: 2147483500; }
+}

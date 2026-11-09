@@ -1,0 +1,1 @@
+Yii.translate.config={"language":"kk-KZ"};Yii.translate.dictionary={"kk-KZ":[],"ru-RU":[],"en-US":[]}
