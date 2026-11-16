@@ -3,16 +3,16 @@
    ------------------------------------------------------------
    • Кнопка справа снизу → панель чата на 1/3 ширины экрана
    • Ответы строго по страницам сайта (RAG: BM25-поиск по индексу)
-   • Краткий пересказ делает локальная модель Ollama (если доступна),
-     иначе — режим поиска с выдержками и источниками
+   • Ответ формирует серверный помощник Gemma, опираясь на базу KU
+   • При недоступности API остаётся локальный поиск с выдержками
    ============================================================ */
 (function () {
   'use strict';
 
   var CFG = {
-    ollama:       'http://localhost:11434', // адрес локальной Ollama
-    model:        'qwen2.5:1.5b',           // модель для пересказа
-    topPages:     5,                        // сколько страниц в контекст
+    aiApi:        'https://ku-portal.onrender.com', // сервер Gemma + база материалов KU
+    model:        'google/gemma-4-e4b',      // модель на сервере университета
+    topPages:     5,                        // сколько страниц показывать в локальном режиме
     topChunks:    3,                        // сколько кусков со страницы
     maxSources:   4,                        // сколько источников показывать
     sourceMode:   'local',                  // 'local' — копия на этом сервере, 'canonical' — оригинальный сайт
@@ -243,6 +243,31 @@
     return box;
   }
 
+  function remoteSourcesBlock(sourceText, fallbackPages) {
+    var box = el('div', 'kwc-sources');
+    box.appendChild(el('div', 'kwc-sources__cap', 'Источники · материалы Kozybayev University'));
+    var lines = String(sourceText || '').split(/\n+/).map(function (s) { return s.trim(); })
+      .filter(function (s) { return s && s !== 'offline'; }).slice(0, CFG.maxSources);
+    if (!lines.length) return sourcesBlock(fallbackPages);
+    lines.forEach(function (line) {
+      var match = line.match(/https:\/\/ku\.edu\.kz\S*/i);
+      var href = match ? match[0].replace(/[),.;]+$/, '') : '';
+      var label = href ? line.replace(href, '').replace(/[\s—-]+$/, '') : line;
+      if (!href) {
+        var pageMatch = line.match(/^(.*?),\s*PDF,\s*стр\.\s*(\d+)/i);
+        if (pageMatch) label = pageMatch[1] + ' · PDF, стр. ' + pageMatch[2];
+      }
+      var a = el(href ? 'a' : 'div', 'kwc-src');
+      if (href) { a.href = href; a.target = '_blank'; a.rel = 'noopener'; }
+      a.innerHTML = '<span class="kwc-src__ico">📄</span>' +
+        '<span class="kwc-src__body"><span class="kwc-src__title">' + esc(label || 'Материал университета') + '</span>' +
+        '<span class="kwc-src__url">' + esc(href ? shortUrl(href) : 'Материал KU') + '</span></span>' +
+        (href ? '<span class="kwc-src__go" aria-hidden="true">↗</span>' : '');
+      box.appendChild(a);
+    });
+    return box;
+  }
+
   function suggestions() {
     var box = el('div', 'kwc-chips');
     ['Как поступить в СКГУ?', 'Общежития и кампус', 'Гранты и стипендии',
@@ -303,7 +328,7 @@
       });
   }
 
-  /* ================= Ollama ================= */
+  /* ================= серверный AI API ================= */
 
   function updateStatus() {
     if (!statusDot || !statusText || !statusLabel) return;
@@ -317,58 +342,30 @@
   }
 
   function checkAI() {
-    return fetch(CFG.ollama + '/api/tags')
+    return fetch(CFG.aiApi + '/api/ai/status')
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) {
-        var found = (d.models || []).some(function (m) {
-          return m.name === CFG.model || String(m.name || '').indexOf(CFG.model) === 0;
-        });
-        return found ? CFG.model : null;
-      })
+      .then(function (d) { return d.online ? (d.model || CFG.model) : null; })
       .catch(function () { return null; });
   }
 
-  function askOllama(question, context, pageURL) {
-    var sys =
-      'Ты — ИИ-помощник студентов Северо-Казахстанского университета имени Манаша Козыбаева (СКГУ, ku.edu.kz). ' +
-      'Отвечай на русском языке, кратко (до 6 предложений), по делу. ' +
-      'Используй ТОЛЬКО факты из приведённого контекста — это фрагменты страниц официального сайта. ' +
-      'Если в контексте нет ответа — честно скажи об этом и укажи страницу из контекста, где стоит искать. ' +
-      'Не придумывай цифры, даты и телефоны. Можно использовать короткие маркированные списки.';
-
-    var user =
-      'Пользователь смотрит страницу: ' + pageURL + '\n\n' +
-      'Вопрос пользователя: ' + question + '\n\n' +
-      'Контекст со страниц сайта ku.edu.kz:\n' + context + '\n\n' +
-      'Ответь на вопрос кратко, опираясь только на контекст.';
-
+  function askRemoteAI(question) {
     var ctrl = new AbortController();
     var timer = setTimeout(function () { ctrl.abort(); }, CFG.aiTimeoutSec * 1000);
-
-    return fetch(CFG.ollama + '/api/chat', {
+    return fetch(CFG.aiApi + '/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: ctrl.signal,
-      body: JSON.stringify({
-        model: CFG.model,
-        messages: [
-          { role: 'system', content: sys },
-          { role: 'user', content: user }
-        ],
-        stream: false,
-        options: { temperature: 0.25, num_ctx: 3072, num_predict: 240 }
-      })
+      body: JSON.stringify({ message: question })
     }).then(function (r) {
       clearTimeout(timer);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
-    }).then(function (j) {
-      var txt = (j.message && j.message.content) || '';
-      txt = txt
-        .replace(/<think>[\s\S]*?<\/think>/gi, '')
-        .replace(/<\/?think>/gi, '')
-        .trim();
-      return txt;
+    }).then(function (data) {
+      if (!data || !data.reply || data.src === 'offline') throw new Error('AI API недоступен');
+      return data;
+    }).catch(function (err) {
+      clearTimeout(timer);
+      throw err;
     });
   }
 
@@ -416,7 +413,7 @@
 
     ensureIndex(function () {
       var rows = search(q);
-      if (!rows.length) {
+      if (!rows.length && !aiMode) {
         if (tp.parentNode) msgs.removeChild(tp);
         addMessage('bot',
           'На страницах сайта не нашёл ничего по этому запросу 🤔 Попробуйте другими ' +
@@ -428,9 +425,6 @@
       }
 
       var hitPages = rows.map(function (r) { return DB.pages[r.u]; });
-      var context = buildContext(rows);
-      var target = location.href;
-
       function finish() {
         msgs.scrollTop = msgs.scrollHeight;
         busy = false;
@@ -439,16 +433,17 @@
       }
 
       if (aiMode) {
-        askOllama(q, context, target).then(function (answer) {
+        askRemoteAI(q).then(function (answer) {
           if (tp.parentNode) msgs.removeChild(tp);
-          var m = addMessage('bot', answer || 'Не удалось получить ответ. Попробуйте ещё раз.', 'Помощник');
-          m.querySelector('.kwc-msg__body').appendChild(sourcesBlock(hitPages));
+          var m = addMessage('bot', answer.reply || 'Не удалось получить ответ. Попробуйте ещё раз.', 'Помощник');
+          m.querySelector('.kwc-msg__body').appendChild(remoteSourcesBlock(answer.src, hitPages));
           finish();
         }).catch(function (e) {
           console.warn('chatbot: не удалось получить ответ от модели', e);
           if (tp.parentNode) msgs.removeChild(tp);
-          var m = addMessage('bot', fallbackAnswer(rows), 'Помощник');
-          m.querySelector('.kwc-msg__body').appendChild(sourcesBlock(hitPages));
+          var fallback = rows.length ? fallbackAnswer(rows) : 'Не удалось получить ответ от ИИ. Попробуйте позже.';
+          var m = addMessage('bot', fallback, 'Помощник');
+          if (hitPages.length) m.querySelector('.kwc-msg__body').appendChild(sourcesBlock(hitPages));
           aiMode = false;
           updateStatus();
           finish();
