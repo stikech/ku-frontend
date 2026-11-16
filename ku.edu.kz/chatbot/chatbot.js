@@ -30,6 +30,7 @@
   var SITE_ROOT = SRC.slice(0, idxAt);                       // …/ku.edu.kz или https://host
   var SERVER_ROOT = SITE_ROOT.replace(/\/ku\.edu\.kz$/, ''); // корень зеркала (для локальных ссылок)
   var INDEX_URL = SITE_ROOT + '/chatbot/data/index.json';
+  var ICON_URL = SITE_ROOT + '/chatbot/bird-idle.png';
 
   /* ================= токенизация (должна совпадать с build_index.py) ================= */
 
@@ -201,20 +202,35 @@
 
   function addMessage(kind, html, who) {
     var wrap = el('div', 'kwc-msg kwc-msg--' + kind);
-    if (who) wrap.appendChild(el('span', 'kwc-msg__who', esc(who)));
-    var body = el('span', 'kwc-msg__body');
+    if (kind === 'bot') wrap.appendChild(assistantAvatar());
+    var content = el('div', 'kwc-msg__content');
+    if (who && kind !== 'user') content.appendChild(el('span', 'kwc-msg__who', esc(who)));
+    var body = el('div', 'kwc-msg__body');
     body.innerHTML = kind === 'bot' ? fmt(html) : html;
-    wrap.appendChild(body);
+    content.appendChild(body);
+    wrap.appendChild(content);
     msgs.appendChild(wrap);
     msgs.scrollTop = msgs.scrollHeight;
     return wrap;
+  }
+
+  function assistantAvatar() {
+    var avatar = el('span', 'kwc-avatar');
+    var img = document.createElement('img');
+    img.src = ICON_URL;
+    img.alt = '';
+    avatar.appendChild(img);
+    return avatar;
   }
 
   function addSys(text) { return addMessage('sys', text); }
 
   function typingBubble() {
     var m = el('div', 'kwc-msg kwc-msg--bot');
-    m.innerHTML = '<span class="kwc-typing"><i></i><i></i><i></i></span>';
+    m.appendChild(assistantAvatar());
+    var content = el('div', 'kwc-msg__content');
+    content.innerHTML = '<span class="kwc-msg__who">Помощник</span><span class="kwc-msg__body"><span class="kwc-typing"><i></i><i></i><i></i></span></span>';
+    m.appendChild(content);
     msgs.appendChild(m);
     msgs.scrollTop = msgs.scrollHeight;
     return m;
@@ -282,9 +298,7 @@
 
   function greet() {
     addMessage('bot',
-      'Здравствуйте! Я <strong>ИИ‑помощник СКГУ им. М. Козыбаева</strong>.' +
-      'Отвечаю <strong>только по материалам сайта ku.edu.kz</strong>: найду нужную ' +
-      'информацию и дам ссылки на страницы-источники. Спросите о чём угодно 👇', 'Помощник');
+      'Здравствуйте! Я помогу найти информацию об учёбе и жизни в Kozybayev University. Отвечаю по материалам университета и показываю источники. Что вас интересует?', 'Помощник');
     msgs.appendChild(suggestions());
     msgs.scrollTop = msgs.scrollHeight;
   }
@@ -334,10 +348,10 @@
     if (!statusDot || !statusText || !statusLabel) return;
     if (aiMode) {
       statusDot.className = 'kwc-head__status kwc-head__status--ai';
-      statusLabel.textContent = 'ИИ: ' + CFG.model;
+      statusLabel.textContent = 'На связи';
     } else {
       statusDot.className = 'kwc-head__status kwc-head__status--local';
-      statusLabel.textContent = 'режим поиска по сайту';
+      statusLabel.textContent = 'Поиск по сайту';
     }
   }
 
@@ -407,6 +421,8 @@
     if (!q || busy) return;
     busy = true;
     sendBtn.disabled = true;
+    inputEl.value = '';
+    inputEl.style.height = '';
 
     addMessage('user', esc(q), 'Вы');
     var tp = typingBubble();
@@ -470,8 +486,10 @@
     fab.type = 'button';
     fab.setAttribute('aria-label', 'Открыть ИИ-помощника');
     fab.title = 'ИИ-помощник СКГУ';
-    fab.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 5.94 2 10.8c0 2.5 1.22 4.77 3.2 6.4-.08.9-.42 2.3-1.46 3.82 0 0 2.36-.36 4.35-1.9 1.23.35 2.53.55 3.91.55 5.52 0 10-3.94 10-8.87C22 5.94 17.52 2 12 2zm-4 9.5c-.72 0-1.3-.58-1.3-1.3S7.28 8.9 8 8.9s1.3.58 1.3 1.3S8.72 11.5 8 11.5zm4 0c-.72 0-1.3-.58-1.3-1.3s.58-1.3 1.3-1.3 1.3.58 1.3 1.3-.58 1.3-1.3 1.3zm4 0c-.72 0-1.3-.58-1.3-1.3s.58-1.3 1.3-1.3 1.3.58 1.3 1.3-.58 1.3-1.3 1.3z"/></svg>';
+    var fabIcon = document.createElement('img');
+    fabIcon.src = ICON_URL;
+    fabIcon.alt = '';
+    fab.appendChild(fabIcon);
     document.body.appendChild(fab);
 
     // всплывающая подпись
@@ -493,9 +511,14 @@
     panel.setAttribute('aria-label', 'ИИ-помощник СКГУ');
 
     var head = el('div', 'kwc-head');
-    head.appendChild(el('div', 'kwc-head__logo', '🎓'));
-    var brand = el('div');
-    brand.appendChild(el('div', 'kwc-head__title', 'ИИ-помощник · СКГУ им. Козыбаева'));
+    var headLogo = el('div', 'kwc-head__logo');
+    var headIcon = document.createElement('img');
+    headIcon.src = ICON_URL;
+    headIcon.alt = '';
+    headLogo.appendChild(headIcon);
+    head.appendChild(headLogo);
+    var brand = el('div', 'kwc-head__brand');
+    brand.appendChild(el('div', 'kwc-head__title', 'Помощник Kozybayev University'));
     statusText = el('div', 'kwc-head__sub');
     statusDot = el('span', 'kwc-head__status');
     statusLabel = el('span', '', 'проверяю модель…');
@@ -504,13 +527,15 @@
     brand.appendChild(statusText);
     head.appendChild(brand);
 
-    var clearBtn = el('button', 'kwc-head__btn', '⟳');
+    var clearBtn = el('button', 'kwc-head__btn');
+    clearBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 7.6 10.5M12 4V1m0 3h4M12 8v4l3 2"/></svg>';
     clearBtn.type = 'button';
     clearBtn.title = 'Новый диалог';
     clearBtn.setAttribute('aria-label', 'Новый диалог');
     head.appendChild(clearBtn);
 
-    var closeBtn = el('button', 'kwc-head__btn kwc-head__btn--close', '×');
+    var closeBtn = el('button', 'kwc-head__btn kwc-head__btn--close');
+    closeBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg>';
     closeBtn.type = 'button';
     closeBtn.title = 'Закрыть';
     closeBtn.setAttribute('aria-label', 'Закрыть');
@@ -524,19 +549,19 @@
     inputRow.id = 'kwc-input';
     inputEl = document.createElement('textarea');
     inputEl.rows = 1;
-    inputEl.placeholder = 'Например: как подать документы на общежитие?';
+    inputEl.placeholder = 'Спросите об университете…';
     inputEl.setAttribute('aria-label', 'Ваш вопрос');
     sendBtn = el('button', 'kwc-send');
     sendBtn.type = 'button';
     sendBtn.title = 'Отправить';
     sendBtn.setAttribute('aria-label', 'Отправить');
-    sendBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
+    sendBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>';
     inputRow.appendChild(inputEl);
     inputRow.appendChild(sendBtn);
     panel.appendChild(inputRow);
 
     panel.appendChild(el('div', 'kwc-foot',
-      'Ответы формируются только по материалам сайта ku.edu.kz · важную информацию проверяйте в источниках'));
+      'Ответы основаны на материалах университета. Проверяйте важные сведения в источниках.'));
     document.body.appendChild(panel);
 
     // события
