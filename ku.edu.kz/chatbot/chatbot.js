@@ -10,7 +10,7 @@
   'use strict';
 
   var CFG = {
-    aiApi:        'https://ku-portal.onrender.com', // сервер Gemma + база материалов KU
+    aiApi:        'https://wizer.tail5fd495.ts.net', // локальный сервер Gemma через Tailscale Funnel
     model:        'google/gemma-4-e4b',      // модель на сервере университета
     topPages:     5,                        // сколько страниц показывать в локальном режиме
     topChunks:    3,                        // сколько кусков со страницы
