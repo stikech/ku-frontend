@@ -30,7 +30,7 @@
   var SITE_ROOT = SRC.slice(0, idxAt);                       // …/ku.edu.kz или https://host
   var SERVER_ROOT = SITE_ROOT.replace(/\/ku\.edu\.kz$/, ''); // корень зеркала (для локальных ссылок)
   var INDEX_URL = SITE_ROOT + '/chatbot/data/index.json';
-  var ICON_URL = SITE_ROOT + '/chatbot/bird-idle.png';
+  var ICON_URL = SITE_ROOT + '/chatbot/bird-idle.png?v=20261118';
 
   /* ================= токенизация (должна совпадать с build_index.py) ================= */
 
